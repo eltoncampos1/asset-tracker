@@ -15,11 +15,18 @@ jobs:
         elixir: ['1.14.5']
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-elixir@v1
+      - uses: erlef/setup-elixir@v1
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
-      - run: rm -r /tmp/.setup-elixir 2>/dev/null || true        
-      - run: mix deps.get
-      - run: mix format --check-formatted
-      - run: mix test
+      - uses: actions/cache@v1
+        id: mix-test-cache
+        with:
+          path: deps
+          key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-mix-${{ hashFiles(format('{0}-{1}', github.workspace, '/mix.lock')) }}   
+      - name: Install deps
+        run: mix deps.get
+      - name: Check Format
+        run: mix format --check-formatted
+      - name: Test
+        run: mix test
