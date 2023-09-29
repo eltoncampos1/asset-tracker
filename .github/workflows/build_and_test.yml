@@ -15,9 +15,16 @@ jobs:
         elixir: ['1.14.5']
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-elixir@v1
+      - uses: erlef/setup-elixir@v1
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
-      - run: mix deps.get
-      - run: mix test
+          install-hex: true
+          install-rebar: false
+     
+      - name: Install deps
+        run: mix deps.get
+      - name: Check Format
+        run: mix format --check-formatted
+      - name: Test
+        run: mix test
