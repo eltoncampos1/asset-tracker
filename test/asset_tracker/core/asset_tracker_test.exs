@@ -4,6 +4,6 @@ defmodule AssetTracker.Core.AssetTrackerTest do
   alias AssetTracker.Core.AssetTracker
 
   test "new/0" do
-    assert %AssetTracker{purchases: [], sales: []} = AssetTracker.new()
+    assert %AssetTracker{purchases: %{}, sales: %{}} = AssetTracker.new()
   end
 end
