@@ -1,17 +1,16 @@
-defmodule AssetTracker.Core.AssetTracker do
+defmodule AssetTracker.Core.Tracker do
   @moduledoc """
   Module to Asset_tracket
   """
   defstruct purchases: %{}, sales: %{}
   @type t :: %__MODULE__{}
-
   @doc """
-  Creates a new AssetTracker
+  Creates a new Tracker for assets
 
   ## Examples
 
-      iex> AssetTracker.Core.AssetTracker.new()
-      %AssetTracker.Core.AssetTracker{purchases: [], sales: []}
+      iex> AssetTracker.Core.Tracker.new()
+      %AssetTracker.Core.Tracker{purchases: [], sales: []}
 
   """
 
