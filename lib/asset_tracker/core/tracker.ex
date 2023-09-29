@@ -109,9 +109,7 @@ defmodule AssetTracker.Core.Tracker do
     paid = Decimal.mult(sale_qty, sale.unit_price)
     value = Decimal.mult(sale_qty, purchase.unit_price)
 
-    total =
-      Decimal.sub(paid, value)
-      |> Decimal.add(gain_or_loss)
+    total = calculate_gain_or_loss(paid, value, gain_or_loss)
 
     {[%Asset{purchase | quantity: pur_qty - sale_qty}] ++ purchases, total}
   end
@@ -126,11 +124,15 @@ defmodule AssetTracker.Core.Tracker do
          %Asset{quantity: sale_qty} = sale,
          gain_or_loss
        ) do
-    gain_or_loss =
-      Decimal.sub(purchase.unit_price, sale.unit_price)
-      |> Decimal.add(gain_or_loss)
+    gain_or_loss = calculate_gain_or_loss(purchase.unit_price, sale.unit_price, gain_or_loss)
 
     %{purchase | quantity: pur_qty - 1}
     |> deduct_sold_quantity(purchases, %{sale | quantity: sale_qty - 1}, gain_or_loss)
+  end
+
+  defp calculate_gain_or_loss(paid, value, initial) do
+    paid
+    |> Decimal.sub(value)
+    |> Decimal.add(initial)
   end
 end
