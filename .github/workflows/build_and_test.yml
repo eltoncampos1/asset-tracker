@@ -19,6 +19,7 @@ jobs:
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
+      - run: rm -r /tmp/.setup-elixir 2>/dev/null || true        
       - run: mix deps.get
       - run: mix format --check-formatted
       - run: mix test
