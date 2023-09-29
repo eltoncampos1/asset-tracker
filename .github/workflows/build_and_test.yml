@@ -19,7 +19,7 @@ jobs:
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
-          install-hex: false
+          install-hex: true
           install-rebar: false
      
       - name: Install deps
