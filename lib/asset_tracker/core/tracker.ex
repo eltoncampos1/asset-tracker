@@ -67,8 +67,46 @@ defmodule AssetTracker.Core.Tracker do
     end
   end
 
+  @spec unrealized_gain_or_loss(tracker :: t(), symbol :: String.t(), market_price :: integer()) ::
+          map()
+  def unrealized_gain_or_loss(%__MODULE__{} = tracker, symbol, market_price) do
+    %{
+      sales: do_unrealized_gain_or_loss(tracker.sales, symbol, market_price),
+      purchases: do_unrealized_gain_or_loss(tracker.purchases, symbol, market_price)
+    }
+  end
+
+  defp do_unrealized_gain_or_loss(assets, symbol, market_price) do
+    case get_assets_by_symbol(assets, symbol) do
+      nil ->
+        :not_found
+
+      assets when is_list(assets) ->
+        assets
+        |> get_median_price()
+        |> calculate_unrealized_gain_or_loss(market_price)
+    end
+  end
+
+  defp calculate_unrealized_gain_or_loss({median, total_qty}, market_price) do
+    market_price
+    |> Decimal.add(median)
+    |> Decimal.mult(total_qty)
+  end
+
+  defp get_median_price(assets) do
+    %{price: price, qty: qty} =
+      assets
+      |> Enum.reduce(%{price: Decimal.new(0), qty: 0}, fn %{unit_price: price, quantity: qty},
+                                                          acc ->
+        %{price: Decimal.add(price, acc.price), qty: qty + acc.qty}
+      end)
+
+    {Decimal.div(price, qty), qty}
+  end
+
   defp update_inventory(tracker, symbol, sale) do
-    case Map.get(tracker.purchases, symbol) do
+    case get_assets_by_symbol(tracker.purchases, symbol) do
       nil ->
         {:error, :not_found}
 
@@ -135,4 +173,6 @@ defmodule AssetTracker.Core.Tracker do
     |> Decimal.sub(value)
     |> Decimal.add(initial)
   end
+
+  defp get_assets_by_symbol(tracker, symbol), do: Map.get(tracker, symbol)
 end
