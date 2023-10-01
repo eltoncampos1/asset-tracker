@@ -5,6 +5,7 @@ defmodule AssetTracker.Adapter.Math.Decimal do
   This was created because in the future we can change de Adapter for math / money operations
   for example using Money lib
   """
+
   # Why using genserver ? To set precision, needs to be set in each process where you want it to be in affect.
 
   @behaviour AssetTracker.Ports.Math
@@ -13,7 +14,6 @@ defmodule AssetTracker.Adapter.Math.Decimal do
 
   @name :math_adapter
   use GenServer
-
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, @name, name: @name)
@@ -45,7 +45,7 @@ defmodule AssetTracker.Adapter.Math.Decimal do
   end
 
   def to_integer(x) do
-     GenServer.call(@name, {:to_integer, x})
+    GenServer.call(@name, {:to_integer, x})
   end
 
   def handle_call({:new, x}, _from, state) do
@@ -73,7 +73,7 @@ defmodule AssetTracker.Adapter.Math.Decimal do
     {:reply, result, state}
   end
 
-    def handle_call({:to_integer, x}, _from, state) do
+  def handle_call({:to_integer, x}, _from, state) do
     result = Decimal.to_integer(x)
     {:reply, result, state}
   end
