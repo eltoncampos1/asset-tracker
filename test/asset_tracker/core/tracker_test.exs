@@ -161,5 +161,11 @@ defmodule AssetTracker.Core.TrackerTest do
       assert p == Math.new(p)
       assert s == Math.new(s)
     end
+
+    test "returns error if no has no asset in inventory on unrealized_gain_or_loss call", %{tracker: tracker} do
+
+      assert %{purchases: :not_found, sales: :not_found} = Tracker.unrealized_gain_or_loss(tracker, "ADDR", 15)
+
+    end
   end
 end
