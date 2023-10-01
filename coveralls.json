@@ -1,0 +1,11 @@
+{
+    "skip_files": [
+        "lib/asset_tracker/adapter/*",
+        "lib/asset_tracker/ports/*",
+        "lib/asset_tracker.ex"
+    ],
+    "coverage_options": {
+        "treat_no_relevant_line_as_covered": true,
+        "output_dir": "cover/"
+    }
+}
