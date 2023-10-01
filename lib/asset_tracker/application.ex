@@ -11,7 +11,6 @@ defmodule AssetTracker.Application do
     children = [
       # Starts a worker by calling: AssetTracker.Worker.start_link(arg)
       # {AssetTracker.Worker, arg}
-      AssetTracker,
       Math.Decimal
     ]
 
