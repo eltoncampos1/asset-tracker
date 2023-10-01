@@ -7,6 +7,8 @@ defmodule AssetTracker.Core.Tracker do
 
   alias AssetTracker.Core.Asset
 
+  alias AssetTracker.Ports.Math
+
   @doc """
   Creates a new Tracker for assets
 
@@ -31,7 +33,7 @@ defmodule AssetTracker.Core.Tracker do
         ) :: t()
   def add_purchase(asset_tracker, asset_symbol, settle_date, quantity, unit_price)
       when quantity > 0 and unit_price > 0 do
-    purchase = Asset.new(asset_symbol, settle_date, quantity, Decimal.new(unit_price), :purchase)
+    purchase = Asset.new(asset_symbol, settle_date, quantity, unit_price, :purchase)
     symbol = String.upcase(asset_symbol)
 
     %__MODULE__{
@@ -49,10 +51,10 @@ defmodule AssetTracker.Core.Tracker do
           seltle_date :: Date.t(),
           quantity :: integer(),
           unit_price :: integer()
-        ) :: {t(), Decimal.t()}
+        ) :: {t(), integer()} | {:error, term()}
   def add_sale(asset_tracker, asset_symbol, sell_date, quantity, unit_price)
       when quantity > 0 and unit_price > 0 do
-    sale = Asset.new(asset_symbol, sell_date, quantity, Decimal.new(unit_price), :sale)
+    sale = Asset.new(asset_symbol, sell_date, quantity, unit_price, :sale)
     symbol = String.upcase(asset_symbol)
 
     case update_inventory(asset_tracker, symbol, sale) do
@@ -62,10 +64,26 @@ defmodule AssetTracker.Core.Tracker do
       {new_purchases, gain_or_loss} ->
         {%__MODULE__{
            purchases: Map.put(asset_tracker.purchases, symbol, new_purchases),
-           sales: Map.update(asset_tracker.sales, symbol, [sale], &(&1 ++ [sale]))
+           sales: Map.update(asset_tracker.sales, symbol, [sale], &([sale] ++ &1))
          }, gain_or_loss}
     end
   end
+
+
+  @doc """
+  Calculates the unrealized gain or loss using the base formula
+  ` (market_price - unit_price_median) * quantity
+
+  ## Examples
+      iex> tracker = AssetTracker.Core.Tracker.new
+      %AssetTracker.Core.Tracker{purchases: %{}, sales: %{}}
+      iex> AssetTracker.Core.Tracker.add_purchase("GOOGL", Date.utc_today(), 10, 10)
+
+      iex> AssetTracker.Core.Tracker.unrealized_gain_or_loss()
+      %AssetTracker.Core.Tracker{purchases: [], sales: []}
+
+  """
+
 
   @spec unrealized_gain_or_loss(tracker :: t(), symbol :: String.t(), market_price :: integer()) ::
           map()
@@ -90,19 +108,18 @@ defmodule AssetTracker.Core.Tracker do
 
   defp calculate_unrealized_gain_or_loss({median, total_qty}, market_price) do
     market_price
-    |> Decimal.add(median)
-    |> Decimal.mult(total_qty)
+    |> Math.sub(median)
+    |> Math.mult(total_qty)
   end
 
   defp get_median_price(assets) do
     %{price: price, qty: qty} =
       assets
-      |> Enum.reduce(%{price: Decimal.new(0), qty: 0}, fn %{unit_price: price, quantity: qty},
-                                                          acc ->
-        %{price: Decimal.add(price, acc.price), qty: qty + acc.qty}
+      |> Enum.reduce(%{price: 0, qty: 0}, fn %{unit_price: price, quantity: qty}, acc ->
+        %{price: Math.add(price, acc.price), qty: qty + acc.qty}
       end)
 
-    {Decimal.div(price, qty), qty}
+    {Math.divide(price, length(assets)), qty} |> IO.inspect()
   end
 
   defp update_inventory(tracker, symbol, sale) do
@@ -133,7 +150,7 @@ defmodule AssetTracker.Core.Tracker do
     if total_invetory < sale_qty do
       {:error, :insuficient_assets}
     else
-      deduct_sold_quantity(purchase, purchases, sale, Decimal.new(0))
+      deduct_sold_quantity(purchase, purchases, sale, 0)
     end
   end
 
@@ -144,8 +161,8 @@ defmodule AssetTracker.Core.Tracker do
          gain_or_loss
        )
        when pur_qty > sale_qty do
-    paid = Decimal.mult(sale_qty, sale.unit_price)
-    value = Decimal.mult(sale_qty, purchase.unit_price)
+    paid = Math.mult(sale_qty, sale.unit_price)
+    value = Math.mult(sale_qty, purchase.unit_price)
 
     total = calculate_gain_or_loss(paid, value, gain_or_loss)
 
@@ -170,8 +187,8 @@ defmodule AssetTracker.Core.Tracker do
 
   defp calculate_gain_or_loss(paid, value, initial) do
     paid
-    |> Decimal.sub(value)
-    |> Decimal.add(initial)
+    |> Math.sub(value)
+    |> Math.add(initial)
   end
 
   defp get_assets_by_symbol(tracker, symbol), do: Map.get(tracker, symbol)
