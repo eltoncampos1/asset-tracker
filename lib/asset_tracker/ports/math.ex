@@ -47,6 +47,6 @@ defmodule AssetTracker.Ports.Math do
    @doc """
    Receives an input type t(), and turns into integer
   """
-  @spec to_integer(x :: t()) :: t()
+  @spec to_integer(x :: t()) :: integer()()
   defdelegate to_integer(x), to: @adapter
 end
