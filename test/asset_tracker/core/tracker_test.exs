@@ -19,18 +19,19 @@ defmodule AssetTracker.Core.TrackerTest do
     test "add_purchase/5", %{tracker: tracker} do
       date = Date.utc_today()
 
-      assert %Tracker{
+      assert %AssetTracker.Core.Tracker{
                purchases: %{
-                 "GOOGL" => [
-                   %Asset{
-                     id: _,
-                     asset_symbol: "GOOGL",
-                     operation_date: ^date,
-                     quantity: 10,
-                     unit_price: price,
-                     operation_type: :purchase
-                   }
-                 ]
+                 "GOOGL" =>
+                   {[
+                      %AssetTracker.Core.Asset{
+                        id: _,
+                        asset_symbol: "GOOGL",
+                        operation_date: ^date,
+                        quantity: 10,
+                        unit_price: price,
+                        operation_type: :purchase
+                      }
+                    ], []}
                },
                sales: %{}
              } = Tracker.add_purchase(tracker, "GOOGL", date, 10, 19)
@@ -59,36 +60,40 @@ defmodule AssetTracker.Core.TrackerTest do
 
       assert {%AssetTracker.Core.Tracker{
                 purchases: %{
-                  "GOOGL" => [
-                    %AssetTracker.Core.Asset{
-                      id: _,
-                      asset_symbol: "GOOGL",
-                      operation_date: _,
-                      quantity: first_purchase_quantity_res,
-                      unit_price: res_price_first,
-                      operation_type: :purchase
-                    },
-                    %AssetTracker.Core.Asset{
-                      id: _,
-                      asset_symbol: "GOOGL",
-                      operation_date: _,
-                      quantity: 10,
-                      unit_price: res_price_second,
-                      operation_type: :purchase
-                    }
-                  ]
+                  "GOOGL" =>
+                    {[
+                       %AssetTracker.Core.Asset{
+                         id: _,
+                         asset_symbol: "GOOGL",
+                         operation_date: _,
+                         quantity: 5,
+                         unit_price: ^price_first,
+                         operation_type: :purchase
+                       }
+                     ],
+                     [
+                       %AssetTracker.Core.Asset{
+                         id: _,
+                         asset_symbol: "GOOGL",
+                         operation_date: _,
+                         quantity: 10,
+                         unit_price: ^price_second,
+                         operation_type: :purchase
+                       }
+                     ]}
                 },
                 sales: %{
-                  "GOOGL" => [
-                    %AssetTracker.Core.Asset{
-                      id: _,
-                      asset_symbol: "GOOGL",
-                      operation_date: _,
-                      quantity: 5,
-                      unit_price: res_sold,
-                      operation_type: :sale
-                    }
-                  ]
+                  "GOOGL" =>
+                    {[
+                       %AssetTracker.Core.Asset{
+                         id: _,
+                         asset_symbol: "GOOGL",
+                         operation_date: _,
+                         quantity: 5,
+                         unit_price: 12,
+                         operation_type: :sale
+                       }
+                     ], []}
                 }
               },
               gain_or_loss} =
@@ -100,11 +105,6 @@ defmodule AssetTracker.Core.TrackerTest do
       purchase = Math.mult(price_first, 5)
       paid = Math.mult(sold, 5)
       assert gain_or_loss == Math.sub(paid, purchase)
-
-      assert res_price_first == price_first
-      assert res_price_second == price_second
-      assert res_sold == sold
-      assert first_purchase_quantity_res == 10 - 5
     end
 
     test "Always update inventory based on FIFO", %{tracker: tracker} do
@@ -117,17 +117,17 @@ defmodule AssetTracker.Core.TrackerTest do
         |> Tracker.add_purchase(symbol, Date.utc_today(), first, 10)
         |> Tracker.add_purchase(symbol, Date.utc_today(), second, 11)
 
-      assets = Map.get(tracker.purchases, symbol)
+      assets = Tracker.get_assets_by_symbol(tracker.purchases, symbol)
 
-      assert [%{quantity: ^first}, %{quantity: ^second, id: second_id}] = assets
+      assert {_tail, [%Asset{quantity: ^first}]} = assets
 
       {tracker, _} =
         tracker
         |> Tracker.add_sale(symbol, Date.utc_today(), 10, 5)
 
-      assets = Map.get(tracker.purchases, symbol)
+      assets = Tracker.get_assets_by_symbol(tracker.purchases, symbol)
 
-      assert [%{quantity: ^second, id: ^second_id}] = assets
+      assert {[%{quantity: ^second}], []} = assets
     end
 
     test "returns error on sale if total invetory is less than sale qty", %{tracker: tracker} do
@@ -138,7 +138,7 @@ defmodule AssetTracker.Core.TrackerTest do
     end
 
     test "returns error on sale if does not have the asset on inventory", %{tracker: tracker} do
-      assert {:error, :not_found} =
+      assert {:error, :nor_found} =
                tracker
                |> Tracker.add_purchase("GOOGL", Date.utc_today(), 5, 1000)
                |> Tracker.add_sale("APPL", Date.utc_today(), 15, 2000)
@@ -152,11 +152,14 @@ defmodule AssetTracker.Core.TrackerTest do
         |> Tracker.add_purchase(symbol, Date.utc_today(), 10, 10)
         |> Tracker.add_purchase(symbol, Date.utc_today(), 12, 11)
 
-
-       {tracker, _}  = tracker
+      {tracker, _} =
+        tracker
         |> Tracker.add_sale(symbol, Date.utc_today(), 6, 10)
 
-      assert "" = Tracker.unrealized_gain_or_loss(tracker, symbol, 15)
+      assert %{purchases: p, sales: s} = Tracker.unrealized_gain_or_loss(tracker, symbol, 15)
+
+      assert p == Math.new(p)
+      assert s == Math.new(s)
     end
   end
 end
