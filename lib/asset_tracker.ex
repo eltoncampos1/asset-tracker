@@ -1,18 +1,21 @@
 defmodule AssetTracker do
   @moduledoc """
-  Documentation for `AssetTracker`.
+    Delegates funcions to core
   """
 
-  @doc """
-  Hello world.
+  alias AssetTracker.Core
 
-  ## Examples
+  defdelegate new, to: Core.Tracker, as: :new
 
-      iex> AssetTracker.hello()
-      :world
+  defdelegate add_purchase(tracker, symbol, settle_date, quantity, unit_price),
+    to: Core.Tracker,
+    as: :add_purchase
 
-  """
-  def hello do
-    :world
-  end
+  defdelegate add_sale(tracker, symbol, settle_date, quantity, unit_price),
+    to: Core.Tracker,
+    as: :add_sale
+
+  defdelegate unrealized_gain_loss(tracker, symbol, market_price),
+    to: Core.Tracker,
+    as: :unrealized_gain_or_loss
 end

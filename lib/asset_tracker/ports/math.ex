@@ -44,7 +44,7 @@ defmodule AssetTracker.Ports.Math do
   @spec divide(x :: param(), y :: param()) :: t()
   defdelegate divide(x, y), to: @adapter
 
-   @doc """
+  @doc """
    Receives an input type t(), and turns into integer
   """
   @spec to_integer(x :: t()) :: integer()
