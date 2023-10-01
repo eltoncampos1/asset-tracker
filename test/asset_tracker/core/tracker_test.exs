@@ -4,6 +4,8 @@ defmodule AssetTracker.Core.TrackerTest do
   alias AssetTracker.Core.Tracker
   alias AssetTracker.Core.Asset
 
+  alias AssetTracker.Ports.Math
+
   describe "Core Asset Tracker" do
     setup do
       tracker = Tracker.new()
@@ -33,7 +35,7 @@ defmodule AssetTracker.Core.TrackerTest do
                sales: %{}
              } = Tracker.add_purchase(tracker, "GOOGL", date, 10, 19)
 
-      assert ^price = Decimal.new("19")
+      assert ^price = 19
     end
 
     test "error on add purchases with invalid quantity", %{tracker: tracker} do
@@ -61,15 +63,15 @@ defmodule AssetTracker.Core.TrackerTest do
                     %AssetTracker.Core.Asset{
                       id: _,
                       asset_symbol: "GOOGL",
-                      operation_date: ~D[2023-09-29],
+                      operation_date: _,
                       quantity: first_purchase_quantity_res,
                       unit_price: res_price_first,
                       operation_type: :purchase
                     },
                     %AssetTracker.Core.Asset{
-                      id: "63b75fe9-e8bc-4183-8164-1a499f67bc83",
+                      id: _,
                       asset_symbol: "GOOGL",
-                      operation_date: ~D[2023-09-29],
+                      operation_date: _,
                       quantity: 10,
                       unit_price: res_price_second,
                       operation_type: :purchase
@@ -81,7 +83,7 @@ defmodule AssetTracker.Core.TrackerTest do
                     %AssetTracker.Core.Asset{
                       id: _,
                       asset_symbol: "GOOGL",
-                      operation_date: ~D[2023-09-29],
+                      operation_date: _,
                       quantity: 5,
                       unit_price: res_sold,
                       operation_type: :sale
@@ -95,13 +97,13 @@ defmodule AssetTracker.Core.TrackerTest do
                |> Tracker.add_purchase("GOOGL", Date.utc_today(), 10, price_second)
                |> Tracker.add_sale(symbol, Date.utc_today(), 5, sold)
 
-      purchase = Decimal.mult(price_first, 5)
-      paid = Decimal.mult(sold, 5)
-      assert gain_or_loss == Decimal.sub(paid, purchase)
+      purchase = Math.mult(price_first, 5)
+      paid = Math.mult(sold, 5)
+      assert gain_or_loss == Math.sub(paid, purchase)
 
-      assert res_price_first == Decimal.new(price_first)
-      assert res_price_second == Decimal.new(price_second)
-      assert res_sold == Decimal.new(sold)
+      assert res_price_first == price_first
+      assert res_price_second == price_second
+      assert res_sold == sold
       assert first_purchase_quantity_res == 10 - 5
     end
 
@@ -140,6 +142,21 @@ defmodule AssetTracker.Core.TrackerTest do
                tracker
                |> Tracker.add_purchase("GOOGL", Date.utc_today(), 5, 1000)
                |> Tracker.add_sale("APPL", Date.utc_today(), 15, 2000)
+    end
+
+    test "calculate unrealized gain or loss for sales and purchases", %{tracker: tracker} do
+      symbol = "APPL"
+
+      tracker =
+        tracker
+        |> Tracker.add_purchase(symbol, Date.utc_today(), 10, 10)
+        |> Tracker.add_purchase(symbol, Date.utc_today(), 12, 11)
+
+
+       {tracker, _}  = tracker
+        |> Tracker.add_sale(symbol, Date.utc_today(), 6, 10)
+
+      assert "" = Tracker.unrealized_gain_or_loss(tracker, symbol, 15)
     end
   end
 end
