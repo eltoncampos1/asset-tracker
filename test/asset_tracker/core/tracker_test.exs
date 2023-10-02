@@ -20,23 +20,22 @@ defmodule AssetTracker.Core.TrackerTest do
       date = Date.utc_today()
 
       assert %AssetTracker.Core.Tracker{
-        id: _,
-        purchases: %{
-          "GOOGL" =>
-            {[
-               %AssetTracker.Core.Asset{
-                 id: _,
-                 asset_symbol: "GOOGL",
-                 operation_date: ^date,
-                 quantity: 10,
-                 unit_price: price,
-                 operation_type: :purchase
-               }
-             ], []}
-        },
-        sales: %{}
-      } =
-        Tracker.add_purchase(tracker, "GOOGL", date, 10, 19)
+               id: _,
+               purchases: %{
+                 "GOOGL" =>
+                   {[
+                      %AssetTracker.Core.Asset{
+                        id: _,
+                        asset_symbol: "GOOGL",
+                        operation_date: ^date,
+                        quantity: 10,
+                        unit_price: price,
+                        operation_type: :purchase
+                      }
+                    ], []}
+               },
+               sales: %{}
+             } = Tracker.add_purchase(tracker, "GOOGL", date, 10, 19)
 
       assert ^price = 19
     end
