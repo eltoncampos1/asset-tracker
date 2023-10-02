@@ -17,7 +17,7 @@ defmodule AssetTracker.Core.Tracker do
   ## Examples
 
       iex> AssetTracker.Core.Tracker.new()
-      %AssetTracker.Core.Tracker{purchases: [], sales: []}
+      {:ok, %AssetTracker.Core.Tracker{id: UUID.uuid4(), purchases: [], sales: []}}
 
   """
 
@@ -28,6 +28,32 @@ defmodule AssetTracker.Core.Tracker do
     }
     |> TrackerRepo.insert()
   end
+
+  @doc """
+    Add new purchase to a asset tracker
+
+    ## Examples
+
+        iex> {:ok, tracker} = AssetTracker.Core.Tracker.new()
+        {:ok, %AssetTracker.Core.Tracker{id: UUID.uuid4(), purchases: [], sales: []}}
+        iex> AssetTracker.Core.Tracker.add_purchase(tracker, "GOOGL", Date.utc_today(), 10, 1000)
+        %AssetTracker.Core.Tracker{
+        id: UUID.uuid4(),
+        purchases: %{
+          "GOOGL" => {[
+            %AssetTracker.Core.Asset{
+              id: UUID.uuid4(),
+              asset_symbol: "GOOGL",
+              operation_date: ~D[2023-10-02],
+              quantity: 10,
+              unit_price: 1000,
+              operation_type: :purchase
+            }
+          ], []}
+        },
+        sales: %{}
+      }
+  """
 
   @spec add_purchase(
           asset_tracker :: t(),
@@ -49,12 +75,65 @@ defmodule AssetTracker.Core.Tracker do
 
     case TrackerRepo.update(params.id, params) do
       {:ok, tracker} -> tracker
-      err -> err
     end
   end
 
   def add_purchase(_asset_tracker, _asset_symbol, _sell_date, _quantity, _unit_price),
     do: {:error, "The quantity and value must be grather than zero"}
+
+  @doc """
+    Add new sale to a asset tracker and returns it with calculated gain or loss
+
+    ## Examples
+
+        iex> {:ok, tracker} = AssetTracker.Core.Tracker.new()
+        {:ok, %AssetTracker.Core.Tracker{id: UUID.uuid4(), purchases: [], sales: []}}
+        iex> tracker = AssetTracker.Core.Tracker.add_purchase(tracker, "GOOGL", Date.utc_today(), 10, 1000)
+        %AssetTracker.Core.Tracker{
+        id: UUID.uuid4(),
+        purchases: %{
+          "GOOGL" => {[
+            %AssetTracker.Core.Asset{
+              id: UUID.uuid4(),
+              asset_symbol: "GOOGL",
+              operation_date: ~D[2023-10-02],
+              quantity: 10,
+              unit_price: 1000,
+              operation_type: :purchase
+            }
+          ], []}
+        },
+        sales: %{}
+      }
+      iex>AssetTracker.Core.Tracker.add_sale(tracker, "GOOGL", Date.utc_today(), 5, 1200)
+      {%AssetTracker.Core.Tracker{
+      id: UUID.uuid4(),
+      purchases: %{
+        "GOOGL" => {[
+            %AssetTracker.Core.Asset{
+              id: UUID.uuid4(),
+              asset_symbol: "GOOGL",
+              operation_date: ~D[2023-10-02],
+              quantity: 5,
+              unit_price: 1000,
+              operation_type: :purchase
+            }
+          ], []}
+      },
+      sales: %{
+        "GOOGL" => {[
+            %AssetTracker.Core.Asset{
+              id: UUID.uuid4(),
+              asset_symbol: "GOOGL",
+              operation_date: ~D[2023-10-02],
+              quantity: 5,
+              unit_price: 1200,
+              operation_type: :sale
+            }
+          ], []}
+      }
+    }, Decimal.new("1000")}
+  """
 
   @spec add_sale(
           asset_tracker :: t(),
@@ -86,7 +165,6 @@ defmodule AssetTracker.Core.Tracker do
 
     case TrackerRepo.update(params.id, params) do
       {:ok, tracker} -> {tracker, gain_or_loss}
-      err -> err
     end
   end
 
@@ -99,26 +177,61 @@ defmodule AssetTracker.Core.Tracker do
   ` (market_price - unit_price_median) * quantity
 
   ## Examples
-      iex> tracker = AssetTracker.Core.Tracker.new
-      %AssetTracker.Core.Tracker{purchases: %{}, sales: %{}}
-      iex> AssetTracker.Core.Tracker.add_purchase("GOOGL", Date.utc_today(), 10, 10)
-
-      iex> AssetTracker.Core.Tracker.unrealized_gain_or_loss()
-      %AssetTracker.Core.Tracker{purchases: [], sales: []}
-
+      iex> {:ok, tracker} = AssetTracker.Core.Tracker.new
+      {:ok, %AssetTracker.Core.Tracker{purchases: %{}, sales: %{}}}
+      iex> tracker= AssetTracker.Core.Tracker.add_purchase("GOOGL", Date.utc_today(), 10, 10)
+      %AssetTracker.Core.Tracker{
+      id: UUID.uuid4(),
+      purchases: %{
+        "GOOGL" => {[
+          %AssetTracker.Core.Asset{
+            id: UUID.uuid4(),
+            asset_symbol: "GOOGL",
+            operation_date: ~D[2023-10-02],
+            quantity: 10,
+            unit_price: 10,
+            operation_type: :purchase
+          }
+        ], []}
+      },
+      sales: %{}
+    }
+    {tracker, gain} = AssetTracker.Core.add_sale(tracker, "GOOGL", Date.utc_today(), 5, 12)
+    {%AssetTracker.Core.Tracker{
+        id:  UUID.uuid4(),
+        purchases: %{
+          "GOOGL" => {[
+              %AssetTracker.Core.Asset{
+                id: UUID.uuid4(),
+                asset_symbol: "GOOGL",
+                operation_date: ~D[2023-10-02],
+                quantity: 5,
+                unit_price: 10,
+                operation_type: :purchase
+              }
+            ], []}
+        },
+        sales: %{
+          "GOOGL" => {[
+              %AssetTracker.Core.Asset{
+                id:  UUID.uuid4(),
+                asset_symbol: "GOOGL",
+                operation_date: ~D[2023-10-02],
+                quantity: 5,
+                unit_price: 12,
+                operation_type: :sale
+              }
+            ], []}
+        }
+      }, Decimal.new("10")}
+      iex> AssetTracker.Core.Tracker.unrealized_gain_or_loss(tracker, "GOOGL", 12)
+      Decimal.new("10")
   """
 
   @spec unrealized_gain_or_loss(tracker :: t(), symbol :: String.t(), market_price :: integer()) ::
-          map()
+          Math.t()
   def unrealized_gain_or_loss(%__MODULE__{} = tracker, symbol, market_price) do
-    %{
-      sales: do_unrealized_gain_or_loss(tracker.sales, symbol, market_price),
-      purchases: do_unrealized_gain_or_loss(tracker.purchases, symbol, market_price)
-    }
-  end
-
-  defp do_unrealized_gain_or_loss(assets, symbol, market_price) do
-    case get_assets_by_symbol(assets, symbol) do
+    case get_assets_by_symbol(tracker.purchases, symbol) do
       nil ->
         :not_found
 
@@ -171,11 +284,15 @@ defmodule AssetTracker.Core.Tracker do
          %Asset{quantity: sale_qty} = sale,
          gain_or_loss
        )
-       when pur_qty > sale_qty do
+       when pur_qty > sale_qty or pur_qty == sale_qty do
     total =
       calculate_gain_or_loss(sale.unit_price, purchase.unit_price, sale.quantity, gain_or_loss)
 
-    {:queue.from_list(purchases ++ [%Asset{purchase | quantity: pur_qty - sale_qty}]), total}
+    if pur_qty - sale_qty == 0 do
+      {:queue.from_list(purchases), total}
+    else
+      {:queue.from_list([%Asset{purchase | quantity: pur_qty - sale_qty}] ++ purchases), total}
+    end
   end
 
   defp deduct_sold_quantity(%Asset{quantity: 0}, purchases, sale, gain_or_loss) do
