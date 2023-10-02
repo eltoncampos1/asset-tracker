@@ -1,3 +1,3 @@
 defmodule AssetTracker.Core.Errors do
-  def not_found, do: {:error, :nor_found}
+  def not_found, do: {:error, :not_found}
 end
