@@ -8,33 +8,35 @@ defmodule AssetTracker.Core.TrackerTest do
 
   describe "Core Asset Tracker" do
     setup do
-      tracker = Tracker.new()
+      {:ok, tracker} = Tracker.new()
       %{tracker: tracker}
     end
 
     test "new/0" do
-      assert %Tracker{purchases: %{}, sales: %{}} = Tracker.new()
+      assert {:ok, %Tracker{purchases: %{}, sales: %{}, id: _}} = Tracker.new()
     end
 
     test "add_purchase/5", %{tracker: tracker} do
       date = Date.utc_today()
 
       assert %AssetTracker.Core.Tracker{
-               purchases: %{
-                 "GOOGL" =>
-                   {[
-                      %AssetTracker.Core.Asset{
-                        id: _,
-                        asset_symbol: "GOOGL",
-                        operation_date: ^date,
-                        quantity: 10,
-                        unit_price: price,
-                        operation_type: :purchase
-                      }
-                    ], []}
-               },
-               sales: %{}
-             } = Tracker.add_purchase(tracker, "GOOGL", date, 10, 19)
+        id: _,
+        purchases: %{
+          "GOOGL" =>
+            {[
+               %AssetTracker.Core.Asset{
+                 id: _,
+                 asset_symbol: "GOOGL",
+                 operation_date: ^date,
+                 quantity: 10,
+                 unit_price: price,
+                 operation_type: :purchase
+               }
+             ], []}
+        },
+        sales: %{}
+      } =
+        Tracker.add_purchase(tracker, "GOOGL", date, 10, 19)
 
       assert ^price = 19
     end
@@ -59,6 +61,7 @@ defmodule AssetTracker.Core.TrackerTest do
       sold = 12
 
       assert {%AssetTracker.Core.Tracker{
+                id: _,
                 purchases: %{
                   "GOOGL" =>
                     {[
