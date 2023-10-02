@@ -2,13 +2,13 @@ defmodule AssetTracker.Core.Tracker do
   @moduledoc """
   Module to Asset_tracket
   """
-  defstruct purchases: %{}, sales: %{}
+  defstruct id: nil, purchases: %{}, sales: %{}
   @type t :: %__MODULE__{}
 
   alias AssetTracker.Core.Asset
 
   alias AssetTracker.Ports.Math
-
+  alias AssetTracker.Tracker.Repository, as: TrackerRepo
   alias AssetTracker.Core.Errors
 
   @doc """
@@ -21,9 +21,12 @@ defmodule AssetTracker.Core.Tracker do
 
   """
 
-  @spec new :: t()
+  @spec new :: {:ok, t()}
   def new do
-    %__MODULE__{}
+    %__MODULE__{
+      id: UUID.uuid4()
+    }
+    |> TrackerRepo.insert()
   end
 
   @spec add_purchase(
@@ -38,10 +41,16 @@ defmodule AssetTracker.Core.Tracker do
     purchase = Asset.new(asset_symbol, settle_date, quantity, unit_price, :purchase)
     symbol = String.upcase(asset_symbol)
 
-    %__MODULE__{
-      purchases: update_inventory(asset_tracker.purchases, symbol, purchase),
-      sales: asset_tracker.sales
+    params = %__MODULE__{
+      asset_tracker
+      | purchases: update_inventory(asset_tracker.purchases, symbol, purchase),
+        sales: asset_tracker.sales
     }
+
+    case TrackerRepo.update(params.id, params) do
+      {:ok, tracker} -> tracker
+      err -> err
+    end
   end
 
   def add_purchase(_asset_tracker, _asset_symbol, _sell_date, _quantity, _unit_price),
@@ -63,16 +72,22 @@ defmodule AssetTracker.Core.Tracker do
     |> get_assets_by_symbol(symbol)
     |> find_earliest_purchase()
     |> calculate_purchases(sale)
-    |> handle_add_sale(asset_tracker, symbol, sale)
+    |> update_repository(asset_tracker, symbol, sale)
   end
 
-  def handle_add_sale({:error, _reason} = error, _asset, _symbol, _sale), do: error
+  defp update_repository({:error, _reason} = error, _asset, _symbol, _sale), do: error
 
-  def handle_add_sale({new_purchases, gain_or_loss}, asset_tracker, symbol, sale) do
-    {%__MODULE__{
-       purchases: Map.put(asset_tracker.purchases, symbol, new_purchases),
-       sales: update_inventory(asset_tracker.sales, symbol, sale)
-     }, gain_or_loss}
+  defp update_repository({new_purchases, gain_or_loss}, asset_tracker, symbol, sale) do
+    params = %__MODULE__{
+      asset_tracker
+      | purchases: Map.put(asset_tracker.purchases, symbol, new_purchases),
+        sales: update_inventory(asset_tracker.sales, symbol, sale)
+    }
+
+    case TrackerRepo.update(params.id, params) do
+      {:ok, tracker} -> {tracker, gain_or_loss}
+      err -> err
+    end
   end
 
   defp update_inventory(inventory, symbol, item) do

@@ -4,14 +4,16 @@ defmodule AssetTracker.Application do
   @moduledoc false
 
   use Application
-  alias AssetTracker.Adapter.Math
+  alias AssetTracker.Adapters.Math
+  alias AssetTracker.Adapters.Repository
 
   @impl true
   def start(_type, _args) do
     children = [
       # Starts a worker by calling: AssetTracker.Worker.start_link(arg)
       # {AssetTracker.Worker, arg}
-      Math.Decimal
+      Math.Decimal,
+      Repository.Ets
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
