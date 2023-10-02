@@ -58,7 +58,7 @@ defmodule AssetTracker.Core.Tracker do
   @spec add_purchase(
           asset_tracker :: t(),
           asset_symbol :: String.t(),
-          settle :: Date.t(),
+          settle_date :: Date.t(),
           quantity :: integer(),
           unit_price :: integer()
         ) :: t()
@@ -138,7 +138,7 @@ defmodule AssetTracker.Core.Tracker do
   @spec add_sale(
           asset_tracker :: t(),
           asset_symbol :: String.t(),
-          seltle_date :: Date.t(),
+          sell_date :: Date.t(),
           quantity :: integer(),
           unit_price :: integer()
         ) :: {t(), integer()} | {:error, term()}

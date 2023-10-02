@@ -32,7 +32,7 @@ defmodule AssetTracker.Adapters.Repository.Ets do
   def handle_call({:get, table, id}, _from, state) do
     case :ets.lookup(table, id) do
       [] -> {:rply, {:error, :not_found}, state}
-      [{_cart_id, value}] -> {:reply, {:ok, value}, state}
+      [{_, value}] -> {:reply, {:ok, value}, state}
     end
   end
 
