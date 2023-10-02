@@ -1,4 +1,4 @@
-defmodule AssetTracker.Adapter.Math.Decimal do
+defmodule AssetTracker.Adapters.Math.Decimal do
   @moduledoc """
   Decimal adapter for Math operations
 
